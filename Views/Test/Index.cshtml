@@ -1,0 +1,288 @@
+﻿
+@{
+    ViewData["Title"] = "Index";
+    Layout = null;
+}
+<link href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js"></script>
+<script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+<script src="~/lib/jquery/jquery.dataTables.min.js"></script>
+<link href="~/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="~/css/buttons.dataTables.min.css" rel="stylesheet" />
+<!------ Include the above in your HEAD tag ---------->
+<script src="~/js/bootstrap-datepicker.js"></script>
+<link href="~/css/calender.css" rel="stylesheet" />
+<link href="~/css/bootstrap-datepicker.css" rel="stylesheet" />
+<script>
+    $(document).ready(function () {
+        $("#txtPurDt").datepicker({
+            autoclose: true,
+            todayHighlight: true,
+            //format: 'dd-mm-yyyy',
+            format: 'yyyy-mm-dd',
+        }).datepicker('update', new Date());
+
+        $("#txtExDt").datepicker({
+            autoclose: true,
+            todayHighlight: true,
+            //format: 'dd-mm-yyyy',
+            format: 'yyyy-mm-dd',
+            startDate: '0d'
+        }).datepicker('update', new Date());
+        GetDetails();
+    });
+    function numeralsOnly(evt) {
+        evt = (evt) ? evt : event;
+        var charCode = (evt.charCode) ? evt.charCode : ((evt.keyCode) ? evt.keyCode : ((evt.which) ? evt.which : 0));
+        if (charCode > 31 && (charCode < 48 || charCode > 57) && (charCode != 46)) {
+            alert("Enter Digit only in this field!");
+            return false;
+        }
+        return true;
+    }
+    function LetterOnlyName(e) {
+        var k = e.keyCode;
+
+        return ((k > 64 && k < 91) || (k > 96 && k < 123) || k == 8 || (k >= 48 && k <= 57) || k == 32);
+
+    }
+    function addItem() {
+        var name = $("#txtName").val();
+        var price = $("#txtPrice").val();
+        var qty = $("#txtQty").val();
+
+        var IsGSTApplicable = "false";
+        if ($("#rdYes").is(":checked")) {
+            var IsGSTApplicable = "true";
+        }
+        var PurchaseDate = $("#txtPurDt").val();
+        var ExpiryDate = $("#txtExDt").val();
+        var color = $("#ddlColor").val();
+        if (name == "") {
+            alert("Please enter name");
+            return;
+        }
+        if (price == "") {
+            alert("Please enter price");
+            return;
+        }
+        if (qty == "") {
+            alert("Please enter Quantity");
+            return;
+        }
+        if (($("#rdYes").is(":checked") == false) && ($("#rdNo").is(":checked") == false)) {
+            alert("Is gst applicable?");
+            return;
+        }
+        if (PurchaseDate == "") {
+            alert("Please select purchase date");
+            return;
+        }
+        if (ExpiryDate == "") {
+            alert("Please select expiry date");
+            return;
+        }
+        if (color == "0") {
+            alert("Please select color");
+            return;
+        }
+        $.ajax({
+            type: "post",
+            url: "/Test/AddItem/",
+            dataType: "json",
+            data: {
+                Name: name,
+                Price: price,
+                Quantity: qty,
+                IsGstapplicable: IsGSTApplicable,
+                PurchaseDate: PurchaseDate,
+                ExpiryDatetime: ExpiryDate,
+                Color: color
+            },
+            success: function (data) {
+                if (data.resCode == 1) {
+                    alert(data.resMsg);
+                }
+                else {
+                    alert(data.resMsg);
+                }
+                GetDetails();
+            },
+            error: function (data) {
+                alert("Sorry, something went wrong.");
+            }
+
+        });
+    }
+    function Reset() {
+        $("#txtName").val("");
+        $("#txtPrice").val("");
+        $("#txtQty").val("");
+        $("#rdYes").prop("checked") = false;
+        $("#rdNo").prop("checked") = false;
+
+    }
+    function GetDetails() {
+        $.ajax({
+            type: "post",
+            url: "/Test/GetItems/",
+            datatype: "json",
+            success: function (data) {
+                if (data.resCode == 1) {
+                    $("#divReport").empty();
+                    var obj = data.resData;
+                    if (obj != null) {
+                        var item = [];
+                        item.push('<table id="tblData" class="table table-responsive ab_table" cellspacing="0">');
+                        item.push("<thead class='ab_thead'><tr>");
+                        item.push("<th>#</th>");
+                        item.push("<th>Name</th>");
+                        item.push("<th>Price</th>");
+                        item.push("<th>Quantity</th>");
+                        item.push("<th>Is GST Applicable</th>");
+                        item.push("<th>Purchase Date</th>");
+                        item.push("<th>Expiry Date</th>");
+                        item.push("<th>Color</th>");
+                        item.push("</tr></thead><tbody>");
+                        for (var i in obj) {
+                            var iNum = parseInt(i);
+                            iNum += 1;
+                            item.push("<tr><td>" + iNum + "</td>");
+                            item.push("<td>" + obj[i].name + "</td>");
+                            item.push("<td>" + obj[i].price + "</td>");
+                            item.push("<td>" + obj[i].quantity + "</td>");
+                            if (obj[i].isGstapplicable == true) {
+                                item.push("<td>Yes</td>");
+                            }
+                            else {
+                                item.push("<td>No</td>");
+                            }
+
+                            item.push("<td>" + obj[i].purchaseDate + "</td>");
+                            item.push("<td>" + obj[i].expiryDatetime + "</td>");
+                            item.push("<td>" + obj[i].color + "</td>");
+
+                            item.push("</tr>");
+                        }
+                        item.push("</tbody></table>");
+                        $("#divReport").html(item.join(' '));
+                        $('#tblData').dataTable({
+                            "paging": true,
+                            "bFilter": true,
+                            "bRetrieve": true,
+                            "bDestroy": true,
+                            "bSort": true,
+                            "bInfo": true,
+                            "bAutoWidth": true,
+                            "iDisplayLength": 10,
+                            "height": 'auto',
+                            buttons: [
+                                'copy', 'excel'
+                            ]
+                        });
+                        $("#divReport").show();
+
+                    }
+                }
+            },
+            error: function (data) {
+                alert("Sorry, something went wrong.");
+            }
+
+        });
+    }
+</script>
+<div class="container">
+    <div class="row centered-form">
+        <div class="col-xs-12 col-sm-8 col-md-4 col-sm-offset-2 col-md-offset-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Add Details</h3>
+                </div>
+                <div class="panel-body">
+                    <form role="form">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-12 col-md-12">
+                                <div class="form-group">
+                                    <input type="text" name="txtName" id="txtName" class="form-control input-sm" placeholder="Name" onkeypress="return LetterOnlyName(event)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <input type="text" name="txtPrice" id="txtPrice" class="form-control input-sm" placeholder="Price" onkeypress="return numeralsOnly(event);" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-12 col-md-12">
+                                <div class="form-group">
+                                    <input type="text" name="txtQty" id="txtQty" class="form-control input-sm" onkeypress="return numeralsOnly(event);" placeholder="Quantity">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-6 col-sm-6 col-md-6">
+                                <div class="form-group">
+                                    Is GST Applicable?
+                                </div>
+                            </div>
+                            <div class="col-xs-6 col-sm-6 col-md-6">
+                                <div class="form-group">
+                                    <div class="col-xs-6 col-sm-6 col-md-6">
+                                        <input type="radio" name="gst" id="rdYes" class="input-sm">
+                                        <label for="rdYes">Yes</label>
+                                    </div>
+                                    <div class="col-xs-6 col-sm-6 col-md-6">
+                                        <input type="radio" name="gst" id="rdNo" class="input-sm">
+                                        <label for="rdNo">No</label>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-12 col-md-12">
+                                <div class="form-group">
+                                    <input type="text" name="txtPurDt" id="txtPurDt" class="form-control input-sm" placeholder="Purchase Date">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-12 col-md-12">
+                                <div class="form-group">
+                                    <input type="text" name="txtExDt" id="txtExDt" class="form-control input-sm" placeholder="Expiry Date">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-12 col-md-12">
+                                <div class="form-group">
+                                    <select class="form-group" id="ddlColor">
+                                        <option value="0">Select color</option>
+                                        <option value="Red">Red</option>
+                                        <option value="Green">Green</option>
+                                        <option value="Black">Black</option>
+                                        <option value="Blue">Blue</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="button" value="Add Item" onclick="addItem();" class="btn btn-info btn-block">
+
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Details</h3>
+                </div>
+                <div class="panel-body" id="divReport">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
